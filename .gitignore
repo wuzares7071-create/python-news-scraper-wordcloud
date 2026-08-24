@@ -1,0 +1,55 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyCharm IDE configs
+.idea/
+
+# VS Code IDE configs
+.vscode/
+
+# Virtual Environments (虛擬環境)
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# SQLite Database (本地資料庫)
+*.db
+*.sqlite3
+
+# Scraped Data & Generated Outputs (產出的暫存檔與圖片)
+daily_news_*.json
+daily_news_*.csv
+
+# Fonts (若字型檔體積較大可選擇性排除，若需公開展示可保留)
+# NotoSansTC-Regular.otf
+
+# Operating System Files
+.DS_Store
+Thumbs.db
