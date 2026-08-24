@@ -1,0 +1,60 @@
+name: Daily News Scraper & WordCloud Automation
+
+on:
+  # 1. 自動排程：每天台灣時間 20:00 (UTC 12:00) 執行
+  schedule:
+    - cron: '0 12 * * *'
+
+  # 2. 允許手動觸發 (進入 GitHub Actions 頁面可手動按 Run workflow 測試)
+  workflow_dispatch:
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 步驟一：拉取 GitHub 儲存庫的程式碼
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # 步驟二：設定 Python 3.10 環境
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      # 步驟三：安裝所需的套件
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # 步驟四：執行新聞爬蟲主程式
+      - name: Run News Scraper
+        run: |
+          python news_scraper.py
+
+      # 步驟五：執行文字雲與歷史 JSON 更新程式
+      - name: Generate WordCloud & Update History
+        run: |
+          python generate_wordcloud.py
+
+      # 步驟六：將自動產生的 docs/ 圖片與檔案 Commit 並 Push 回 GitHub
+      - name: Commit and Push Updated Files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # 加入變更的檔案 (docs 資料夾、SQLite 資料庫與最新 JSON)
+          git add docs/ news_database.db daily_news_*.json daily_news_*.csv || true
+          
+          # 檢查是否有新增或修改的檔案，有變更才進行 Commit
+          if git diff --staged --quiet; then
+            echo "沒有新變更，跳過 Commit。"
+          else
+            git commit -m "chore(auto): 自動更新每日新聞文字雲與歷史紀錄 [$(date +'%Y-%m-%d')]"
+            git push
+          fi
