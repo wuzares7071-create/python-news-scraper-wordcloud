@@ -1,12 +1,10 @@
 import logging
 import json
 import sqlite3
-import time
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import schedule
 
 # 設定 Logging 紀錄
 logging.basicConfig(
@@ -14,10 +12,11 @@ logging.basicConfig(
     format='%(asctime)s - [%(levelname)s] - %(message)s'
 )
 
+
 class NewsPipeline:
     """
-    ETtoday 新聞自動化 ETL 管道
-    包含：爬取、去重、SQLite 寫入、歷史清理、CSV/JSON 匯出
+    ETtoday 新聞自動化 ETL 管道 (GitHub Actions / 單次執行版)
+    包含：爬取、去重、SQLite 寫入、維持最新 N 筆資料、CSV/JSON 匯出
     """
 
     def __init__(self, db_path: str = "news_database.db", max_keep_records: int = 100):
@@ -30,7 +29,7 @@ class NewsPipeline:
             )
         }
         self.db_path = db_path
-        self.max_keep_records = max_keep_records  # 資料庫最多保留的新聞筆數
+        self.max_keep_records = max_keep_records  # 資料庫最多保留的新聞筆數 (設為 100 筆)
         self._init_db()
 
     def _init_db(self):
@@ -77,7 +76,8 @@ class NewsPipeline:
                 title_tag = item.select_one('a')
 
                 title = title_tag.text.strip()
-                link = "https://www.ettoday.net" + title_tag['href'] if title_tag['href'].startswith('/') else title_tag['href']
+                link = "https://www.ettoday.net" + title_tag['href'] if title_tag['href'].startswith('/') else \
+                title_tag['href']
 
                 news_data = {
                     "time": time_str,
@@ -94,7 +94,7 @@ class NewsPipeline:
         return news_list
 
     def save_to_db(self, news_list: list[dict]) -> int:
-        """將資料寫入 SQLite 並去除重複，最後清理舊資料"""
+        """將資料寫入 SQLite 並去除重複，最後強制保留最新 N 筆 (預設 100 筆)"""
         if not news_list:
             return 0
 
@@ -112,7 +112,7 @@ class NewsPipeline:
                 if cursor.rowcount > 0:
                     new_inserted += 1
 
-            # 2. 保留最新 N 筆，刪除其餘舊資料
+            # 2. 保留最新 N 筆，刪除超過 N 筆的舊資料
             cursor.execute('''
                 DELETE FROM news
                 WHERE rowid NOT IN (
@@ -122,7 +122,7 @@ class NewsPipeline:
 
             conn.commit()
 
-        logging.info(f"SQLite 更新完畢：新增 {new_inserted} 筆資料，舊資料已清理，目前資料庫維持最新 {self.max_keep_records} 筆。")
+        logging.info(f"SQLite 更新完畢：新增 {new_inserted} 筆資料，資料庫維持最新 {self.max_keep_records} 筆上限。")
         return new_inserted
 
     def export_files(self):
@@ -148,10 +148,6 @@ class NewsPipeline:
 
         logging.info(f"已匯出檔案: {csv_filename} 與 {json_filename}")
 
-        # 終端機預覽輸出
-        print(f"\n[即時更新 - {datetime.now().strftime('%H:%M:%S')}] 資料庫最新 {len(df)} 筆內容預覽：")
-        print(df.head(5).to_string(index=False))
-
     def run_pipeline(self):
         """執行一次單次完整任務 (ETL)"""
         logging.info(">>> 開始執行新聞自動化抓取任務 <<<")
@@ -160,24 +156,12 @@ class NewsPipeline:
             news_list = self.parse_news(html)
             self.save_to_db(news_list)
             self.export_files()
+        logging.info(">>> 任務執行完畢，正常退出程式 <<<")
 
 
 if __name__ == "__main__":
-    pipeline = NewsPipeline(max_keep_records=50)
+    # 設定資料庫最多保留最新 100 筆資料
+    pipeline = NewsPipeline(max_keep_records=100)
 
-    # 1. 啟動時先立即執行第 1 次抓取
+    # 執行一次單次任務後即刻結束，無須常駐迴圈
     pipeline.run_pipeline()
-
-    # 2. 設定每 3 分鐘自動輪詢執行一次
-    schedule.clear()
-    schedule.every(3).minutes.do(pipeline.run_pipeline)
-
-    print("\n⏰ 定時排程已啟動！每 3 分鐘會自動抓取一次... (按 Ctrl+C 可停止程式)")
-
-    # 3. 常駐監聽排程（PyCharm 本地環境建議寫成無窮迴圈）
-    try:
-        while True:
-            schedule.run_pending()
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\n停用排程，程式已安全結束。")
