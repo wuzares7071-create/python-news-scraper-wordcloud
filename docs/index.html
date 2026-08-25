@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日新聞焦點文字雲儀表板</title>
+    <!-- 引入 Google 字型與 Tailwind CSS 現代化樣式庫 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8fafc;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <!-- 頁頭 Header -->
+    <header class="bg-indigo-600 text-white shadow-md py-6 px-4">
+        <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold tracking-wide">📰 ETtoday 每日新聞焦點文字雲</h1>
+                <p class="text-indigo-200 text-sm mt-1">自動化爬蟲分析 · 掌握每日最熱門關鍵字趨勢</p>
+            </div>
+            <!-- 自動更新標籤 -->
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-indigo-500/50 border border-indigo-400 text-white">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                GitHub Actions 每日自動更新
+            </span>
+        </div>
+    </header>
+
+    <!-- 主要內容區 Main Content -->
+    <main class="max-w-4xl mx-auto w-full px-4 py-8 flex-grow">
+        
+        <!-- 控制與選擇列 Control Bar -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <label for="date-select" class="font-medium text-slate-700 whitespace-nowrap">📅 選擇日期：</label>
+                <select id="date-select" class="bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 outline-none transition">
+                    <option value="" disabled selected>載入歷史紀錄中...</option>
+                </select>
+            </div>
+
+            <!-- 切換按鈕 Group -->
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button id="btn-prev" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed">
+                    ← 前一天
+                </button>
+                <button id="btn-next" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed">
+                    後一天 →
+                </button>
+            </div>
+        </div>
+
+        <!-- 圖片展示卡片 Image Display Card -->
+        <div class="bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden">
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h2 id="display-date-title" class="text-lg font-bold text-slate-800">
+                    載入中...
+                </h2>
+                <span id="image-status-tag" class="text-xs px-2.5 py-1 rounded bg-indigo-50 text-indigo-700 font-medium">
+                    文字雲圖檔
+                </span>
+            </div>
+
+            <!-- 圖片容器 -->
+            <div class="p-4 sm:p-6 flex justify-center items-center min-h-[300px] bg-white relative">
+                <!-- 載入中 Spinner -->
+                <div id="loading-spinner" class="absolute flex flex-col items-center gap-2 text-slate-400">
+                    <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-sm">正在載入圖檔...</span>
+                </div>
+
+                <!-- 文字雲圖片 -->
+                <img id="wordcloud-img" src="" alt="新聞文字雲" class="hidden max-w-full h-auto rounded-lg shadow-sm border border-slate-100 transition-all duration-300">
+
+                <!-- 錯誤提示 (預設隱藏) -->
+                <div id="error-message" class="hidden flex flex-col items-center text-center p-6 text-slate-500">
+                    <p class="text-4xl mb-2">🖼️</p>
+                    <p class="font-medium text-slate-700">找不到該日期的文字雲圖片</p>
+                    <p class="text-xs text-slate-400 mt-1">可能該天未執行自動抓取的任務或檔案尚未更新。</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- 頁尾 Footer -->
+    <footer class="bg-slate-100 border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        <p>© ETtoday 自動化新聞字雲專案 · 自動化託管於 GitHub Pages</p>
+    </footer>
+
+    <!-- JavaScript 邏輯控管 -->
+    <script>
+        let historyDates = [];
+        let currentIndex = -1;
+
+        const dateSelect = document.getElementById('date-select');
+        const displayDateTitle = document.getElementById('display-date-title');
+        const wordcloudImg = document.getElementById('wordcloud-img');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const errorMessage = document.getElementById('error-message');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+
+        // 日期格式化：將 20260825 轉成 2026 年 08 月 25 日
+        function formatDateString(dateStr) {
+            if (!dateStr || dateStr.length !== 8) return dateStr;
+            const y = dateStr.substring(0, 4);
+            const m = dateStr.substring(4, 6);
+            const d = dateStr.substring(6, 8);
+            return `${y} 年 ${m} 月 ${d} 日`;
+        }
+
+        // 載入指定的圖片
+        function loadWordcloud(index) {
+            if (index < 0 || index >= historyDates.length) return;
+
+            currentIndex = index;
+            const targetDate = historyDates[currentIndex];
+
+            // 介面更新
+            dateSelect.value = targetDate;
+            displayDateTitle.textContent = `📅 ${formatDateString(targetDate)} 文字雲分析`;
+            
+            // 按鈕狀態控制
+            btnPrev.disabled = (currentIndex === 0);
+            btnNext.disabled = (currentIndex === historyDates.length - 1);
+
+            // 圖片顯示狀態重置
+            loadingSpinner.classList.remove('hidden');
+            wordcloudImg.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+
+            // 載入圖片 (路徑為 images/wordcloud_YYYYMMDD.png)
+            const imgPath = `images/wordcloud_${targetDate}.png`;
+            wordcloudImg.src = imgPath;
+
+            wordcloudImg.onload = () => {
+                loadingSpinner.classList.add('hidden');
+                wordcloudImg.classList.remove('hidden');
+            };
+
+            wordcloudImg.onerror = () => {
+                loadingSpinner.classList.add('hidden');
+                errorMessage.classList.remove('hidden');
+            };
+        }
+
+        // 初始化：讀取 history.json
+        async function init() {
+            try {
+                const response = await fetch('history.json');
+                if (!response.ok) throw new Error('無法取得 history.json');
+                
+                historyDates = await response.json();
+
+                if (historyDates.length === 0) {
+                    displayDateTitle.textContent = '尚無歷史紀錄';
+                    loadingSpinner.classList.add('hidden');
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+
+                // 清空下拉選單
+                dateSelect.innerHTML = '';
+
+                // 填入下拉選單 (近期的排前面)
+                historyDates.forEach((dateStr, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = dateStr;
+                    opt.textContent = formatDateString(dateStr);
+                    dateSelect.appendChild(opt);
+                });
+
+                // 事件綁定：選單切換
+                dateSelect.addEventListener('change', (e) => {
+                    const idx = historyDates.indexOf(e.target.value);
+                    if (idx !== -1) loadWordcloud(idx);
+                });
+
+                // 事件綁定：按鈕切換
+                btnPrev.addEventListener('click', () => {
+                    if (currentIndex > 0) loadWordcloud(currentIndex - 1);
+                });
+
+                btnNext.addEventListener('click', () => {
+                    if (currentIndex < historyDates.length - 1) loadWordcloud(currentIndex + 1);
+                });
+
+                // 預設開啓最新一天 (最後一筆)
+                loadWordcloud(historyDates.length - 1);
+
+            } catch (err) {
+                console.error('初始化失敗:', err);
+                displayDateTitle.textContent = '載入資料失敗';
+                loadingSpinner.classList.add('hidden');
+                errorMessage.classList.remove('hidden');
+            }
+        }
+
+        // 頁面載入後啟動
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
