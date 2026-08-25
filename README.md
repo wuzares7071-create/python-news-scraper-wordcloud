@@ -1,6 +1,6 @@
 # 📰 Python ETtoday 即時新聞爬蟲與熱門關鍵字文字雲 (News Scraper & WordCloud)
 
-🔗 **Live Demo (歷史文字雲展示)**: [https://wuzares7071-create.github.io/python-news-scraper-wordcloud/](https://wuzares7071-create.github.io/python-news-scraper-wordcloud/)
+🔗 **Live Demo (每日新聞焦點文字雲網頁展示)**: [https://wuzares7071-create.github.io/python-news-scraper-wordcloud/](https://wuzares7071-create.github.io/python-news-scraper-wordcloud/)
 
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
