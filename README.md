@@ -32,13 +32,20 @@
 
 ```text
 python-news-scraper-wordcloud/
-│
-├── daily_news_20260825.json    # 爬蟲產出的結構化新聞資料 (JSON 格式)
-├── daily_news_20260825.csv     # 爬蟲產出的新聞資料 (CSV 格式)
-├── news_database.db            # SQLite 本地資料庫 (儲存去重後的新聞)
-├── generate_wordcloud.py       # 文字雲生成與視覺化主程式
-├── news_scraper.py             # ETtoday 自動化爬蟲與 SQLite 寫入主程式
-├── NotoSansTC-Regular.otf      # 繁體中文字型檔 (避免文字雲亂碼)
-├── wordcloud_result.png        # 產出的文字雲成果圖
-├── requirements.txt            # 專案依賴套件清單
-└── README.md                   # 專案說明文件
+├── .github/
+│   └── workflows/
+│       └── daily_scraper.yml          # GitHub Actions 每日自動排程與 CI/CD 部署設定檔
+├── docs/                              # GitHub Pages 託管與前端動態展示資料夾
+│   ├── images/                        # 歷史每日文字雲產出圖片 (wordcloud_YYYYMMDD.png)
+│   ├── history.json                   # 自動生成的歷史日期索引檔 (提供前端選單動態讀取)
+│   └── index.html                     # 響應式 (RWD) 歷史文字雲線上展示儀表板
+├── news_database.db                   # SQLite 本地/雲端資料庫 (儲存歷史新聞、網址去重與維護最新100筆)
+├── generate_wordcloud.py              # 中文斷詞 (Jieba) 與文字雲視覺化產出主程式
+├── news_scraper.py                    # ETtoday 新聞爬蟲與 SQLite 寫入去重主程式
+├── NotoSansCJKtc-Regular.otf          # 繁體中文字型檔 (確保文字雲正確渲染中文無亂碼)
+├── requirements.txt                   # 專案 Python 套件依賴清單
+├── README.md                          # 專案說明文件 (Portfolio 說明)
+├── .gitignore                         # Git 版本控制忽略設定檔
+├── daily_news_YYYYMMDD.json           # 每日爬取的結構化新聞資料 (JSON 格式範例)
+├── daily_news_YYYYMMDD.csv            # 每日爬取的結構化新聞資料 (CSV 格式範例)
+└── wordcloud_result.png               # 當日新聞關鍵字文字雲成果圖範例
