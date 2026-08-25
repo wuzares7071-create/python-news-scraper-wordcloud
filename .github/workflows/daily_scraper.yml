@@ -3,7 +3,7 @@ name: Daily News Scraper & WordCloud Automation
 on:
   # 1. 自動排程：每天台灣時間 20:00 (UTC 12:00) 執行
   schedule:
-    - cron: '10 14 * * *'
+    - cron: '35 14 * * *'
 
   # 2. 允許手動觸發 (進入 GitHub Actions 頁面可手動按 Run workflow 測試)
   workflow_dispatch:
