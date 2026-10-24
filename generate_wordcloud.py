@@ -1,3 +1,4 @@
+import code
 import os
 import glob
 import json
@@ -6,6 +7,17 @@ import pandas as pd
 import jieba
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+import random
+
+# 自訂隨機鮮豔色彩函數
+def random_color_func(word=None, font_size=None, position=None, orientation=None, font_path=None, random_state=None):
+    # 隨機色相 (0~360)、高飽和度 (70%~100%)、適中亮度 (40%~60%) 確保字體清晰且色彩豐富
+    hue = random.randint(0, 360)
+    saturation = random.randint(70, 100)
+    lightness = random.randint(40, 60)
+    return f"hsl({hue}, {saturation}%, {lightness}%)"
 
 # ==========================================
 # 1. 建立 docs 網頁檔案目錄結構
@@ -56,12 +68,31 @@ image_save_path = os.path.join(images_dir, image_filename)
 
 font_path = "NotoSansCJKtc-Regular.otf"  # 請確保專案根目錄下有此字型檔，或使用系統字型路徑
 
+# 2026 1024 add code
+# 載入 cloud_wordcloud_mask.png 底圖遮罩
+mask_path = "cloud_wordcloud_mask.png"
+mask_image = None
+
+if os.path.exists(mask_path):
+    # 以灰階模式讀取圖片
+    mask_image = np.array(Image.open(mask_path).convert("L"))
+
+    # 由於原圖是黑底白雲，wordcloud 需要「白底黑雲（黑字填滿處）」，因此進行反轉
+    mask_image = 255 - mask_image
+    print(f"🎨 已成功載入並反轉文字雲底圖遮罩：{mask_path}")
+    # mask_image = np.array(Image.open(mask_path))
+    # print(f"🎨 已成功載入文字雲底圖遮罩：{mask_path}")
+else:
+    print(f"⚠️ 找不到底圖檔案 {mask_path}，將以預設矩形產生文字雲。")
+
 wc = WordCloud(
     font_path=font_path if os.path.exists(font_path) else None,
     background_color='white',
     width=1000,
     height=500,
-    max_words=100
+    max_words=100,
+    mask=mask_image,
+    color_func=random_color_func  # 套用自訂隨機顏色
 ).generate(cut_text)
 
 wc.to_file(image_save_path)
